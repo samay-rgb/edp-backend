@@ -1,4 +1,5 @@
 from flask import Flask
+import os
 from flask import request
 from supabase import create_client, Client
 from flask import jsonify
@@ -36,4 +37,4 @@ def sensor_data():
       data3,count3= supabase.table('wifi-readings').insert({"mac1": mac1, "mac2": mac2,"mac3":mac3,"calcx":lat,"calcy":lng}).execute()
       return jsonify({'message': 'Data stored successfully'}), 200
 if __name__ == '__main__':
-   app.run(debug = True)
+   app.run(debug=True, port=os.getenv("PORT", default=5000))
