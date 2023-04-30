@@ -90,7 +90,7 @@ def sensor_data():
         diff1= random.uniform(0,0.788)
         diff2= random.uniform(0,0.95)
         x, y = getLocation(rssi, wifilocs) 
-        x2, y2 = x+diff1,x+diff2
+        x2, y2 = x+diff1/10, x+diff2/10
         xf, yf = (x+x2)/2,(y+y2)/2
       #   print(x, y)
         device_id = request.json.get('device_id')
