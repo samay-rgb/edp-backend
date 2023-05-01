@@ -14,8 +14,8 @@ from filterpy.kalman import KalmanFilter
 
 wifilocs = {
     'MAC1': [0, 0],
-    'MAC2': [0.12673, 0.14332],
-    'MAC3': [0.15454, 0.15887],
+    'MAC2': [5,5],
+    'MAC3': [5,10],
 }
 
 
@@ -37,27 +37,28 @@ def final_estimation(zs, x0, P0, F, H, Q, R):
 
 def hybridize(zs):
 
-   # Initial state
-   x0 = np.array([[45], [17.5]])
+    # Initial state
+    x0 = np.array([[45], [17.5]])
 
-   # Initial covariance
-   P0 = np.array([[0.1, 0.0], [0.0, 0.1]])
+    # Initial covariance
+    P0 = np.array([[0.1, 0.0], [0.0, 0.1]])
 
-   # State transition matrix
-   F = np.array([[1.0, 0.1], [0.0, 1.0]])
+    # State transition matrix
+    F = np.array([[1.0, 0.1], [0.0, 1.0]])
 
-   # Measurement function
-   H = np.array([[1.0, 0.0], [0.0, 1.0]])
+    # Measurement function
+    H = np.array([[1.0, 0.0], [0.0, 1.0]])
 
-   # Process noise covariance
-   Q = np.array([[0.1, 0.0], [0.0, 0.1]])
+    # Process noise covariance
+    Q = np.array([[0.1, 0.0], [0.0, 0.1]])
 
-   # Measurement noise covariance
-   R = np.array([[0.1, 0.0], [0.0, 0.1]])
+    # Measurement noise covariance
+    R = np.array([[0.1, 0.0], [0.0, 0.1]])
 
-   # Call the position_estimation function
-   estimated_states = final_estimation(zs, x0, P0, F, H, Q, R)
-   return estimated_states[0][0], estimated_states[0][1]
+    # Call the position_estimation function
+    estimated_states = final_estimation(zs, x0, P0, F, H, Q, R)
+    return estimated_states[0][0], estimated_states[0][1]
+
 
 app = Flask(__name__)
 CORS(app)
@@ -86,15 +87,17 @@ def sensor_data():
         mac1 = request.json.get('mac1') if "mac1" in request.json else 0
         mac2 = request.json.get('mac2') if "mac2" in request.json else 0
         mac3 = request.json.get('mac3') if "mac3" in request.json else 0
+        gas = request.json.get("gas")
         rssi = [mac1, mac2, mac3]
-        diff1= random.uniform(0,0.788)
-        diff2= random.uniform(0,0.95)
-        x, y = getLocation(rssi, wifilocs) 
-        x2, y2 = x+diff1/10, x+diff2/10
-        xf, yf = (x+x2)/2,(y+y2)/2
-      #   print(x, y)
-        device_id = request.json.get('device_id')
-        data, count = supabase.table('locations').insert({"wplx": x, "wply": y,"pdrx":x2,"pdry":y2,"finalx":xf,"finaly":yf,"device_id":798}).execute()
+        diff1 = random.uniform(0, 0.788)
+        diff2 = random.uniform(0, 0.95)
+        x, y = getLocation(rssi, wifilocs)
+        x2, y2 = estimate_location([ax, ay, az], [gx, gy, gz], [mx, my, mz])
+        xf, yf = hybridize([[x, y], [x2, y2]])
+        # print(x, y)
+        # device_id = request.json.get('device_id')
+        data, count = supabase.table('locations').insert(
+            {"wplx": x, "wply": y, "pdrx": x2, "pdry": y2, "finalx": xf, "finaly": yf, "device_id": 798, "gas": gas}).execute()
         data2, count2= supabase.table('sensor-readings').insert({"ax": ax, "ay": ay,"az":az,"gx":gx,"gy":gy,"gz":gz,"mx":mx,"my":my,"mz":mz,"calcx":x2,"calcy":y2}).execute()
         data3,count3= supabase.table('wifi-readings').insert({"mac1": mac1, "mac2": mac2,"mac3":mac3,"calcx":x,"calcy":y}).execute()
         return jsonify({'message': 'Data stored successfully'}), 200
